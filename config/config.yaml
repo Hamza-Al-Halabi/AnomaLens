@@ -1,0 +1,43 @@
+data:
+  skab:
+    valve1_path: "data/raw/skab/valve1"
+    valve2_path: "data/raw/skab/valve2"
+    target_col: "anomaly"
+    drop_cols: ["datetime", "changepoint", "source_group", "source_file"]
+  batadal:
+    path: "data/raw/batadal/BATADAL_dataset02.csv"
+    label_col: "ATT_FLAG"
+    drop_cols: ["DATETIME"]
+    split:
+      train: 0.60
+      val:   0.20
+      test:  0.20
+
+preprocessing:
+  scaler: "standard"
+  pca_components: 1
+
+model:
+  seeds: [42, 123, 2026, 7, 999]
+  epochs: 50
+  batch_size: 32
+  patience: 5
+  skab_n_splits: 5
+
+automata:
+  window_size: 4
+  alphabet_size: 3
+  smoothing: 1.0e-6
+  param_sweep:
+    window_sizes: [3, 4, 5, 6]
+    alphabet_sizes: [3, 4, 5, 6]
+
+noise:
+  gaussian_std: 0.1
+
+paths:
+  processed:   "data/processed"
+  logs:        "experiments/logs"
+  figures:     "results/figures"
+  tables:      "results/tables"
+  models_dir:  "experiments/models"
