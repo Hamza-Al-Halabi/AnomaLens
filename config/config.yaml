@@ -25,6 +25,11 @@ model:
   batch_size: 32
   patience: 5
   skab_n_splits: 5
+  seq_len: 16
+  hidden_size: 64
+  num_layers: 2
+  dropout: 0.2
+  learning_rate: 0.001
 
 automata:
   window_size: 4
