@@ -1,0 +1,60 @@
+{
+  "SKAB": {
+    "lstm_vs_automata": {
+      "test": "wilcoxon",
+      "comparison": "lstm vs automata",
+      "mean_a": 0.8237329014961979,
+      "mean_b": 0.27984066780996386,
+      "statistic": 0.0,
+      "p_value": 5.960464477539063e-08,
+      "significant": true
+    },
+    "gru_vs_automata": {
+      "test": "wilcoxon",
+      "comparison": "gru vs automata",
+      "mean_a": 0.8312073498846321,
+      "mean_b": 0.27984066780996386,
+      "statistic": 0.0,
+      "p_value": 5.960464477539063e-08,
+      "significant": true
+    },
+    "cnn_vs_automata": {
+      "test": "wilcoxon",
+      "comparison": "cnn vs automata",
+      "mean_a": 0.7555368317924805,
+      "mean_b": 0.27984066780996386,
+      "statistic": 0.0,
+      "p_value": 5.960464477539063e-08,
+      "significant": true
+    }
+  },
+  "BATADAL": {
+    "lstm_vs_automata": {
+      "test": "wilcoxon",
+      "comparison": "lstm vs automata",
+      "mean_a": 0.16474490204358366,
+      "mean_b": 0.16988416988416988,
+      "statistic": 5.0,
+      "p_value": 0.625,
+      "significant": false
+    },
+    "gru_vs_automata": {
+      "test": "wilcoxon",
+      "comparison": "gru vs automata",
+      "mean_a": 0.0539765306122449,
+      "mean_b": 0.16988416988416988,
+      "statistic": 0.0,
+      "p_value": 0.0625,
+      "significant": false
+    },
+    "cnn_vs_automata": {
+      "test": "wilcoxon",
+      "comparison": "cnn vs automata",
+      "mean_a": 0.13926675094816687,
+      "mean_b": 0.16988416988416988,
+      "statistic": 5.0,
+      "p_value": 0.5625,
+      "significant": false
+    }
+  }
+}

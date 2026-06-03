@@ -12,8 +12,18 @@ ProbabilisticAutomata model, including:
 
 import json
 import numpy as np
-from src.models.automata.sax import series_to_sax_patterns
-from src.models.automata.levenshtein import resolve_pattern
+try:
+    from src.models.automata.sax import series_to_sax_patterns
+    from src.models.automata.levenshtein import resolve_pattern
+except ModuleNotFoundError:
+    # When running this file directly as a script, the package root may
+    # not be on sys.path. Add the project src root (two levels up) and
+    # retry imports so the module can be executed standalone.
+    import os, sys
+
+    sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..")))
+    from src.models.automata.sax import series_to_sax_patterns
+    from src.models.automata.levenshtein import resolve_pattern
 
 
 class AutomataExplainer:
@@ -129,8 +139,9 @@ class AutomataExplainer:
 
 
 if __name__ == "__main__":
+    # Ensure project root is on sys.path when running as a script
     import sys, os
-    sys.path.insert(0, os.path.abspath("."))
+    sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..")))
 
     from src.data.loader       import load_config, load_batadal, get_batadal_features_target
     from src.data.splitter     import get_batadal_split
