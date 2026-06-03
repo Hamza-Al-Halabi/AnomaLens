@@ -97,7 +97,7 @@ class AutomataExplainer:
         lines = [
             "[SYSTEM DECISION]",
             f"Time Step: t = {exp['time_step']}",
-            f"Current State: \"{exp['state']}\"",
+            f"Previous State: \"{exp['state']}\"",
             f"Incoming Pattern: \"{exp['pattern']}\"",
             f"Status: {exp['status'].capitalize()}",
         ]

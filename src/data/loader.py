@@ -78,7 +78,7 @@ def load_batadal(config: dict) -> pd.DataFrame:
 
     print(f"[BATADAL] Loaded {len(df)} rows")
     print(f"[BATADAL] Attack rate: {df[label_col].mean():.2%}")
-    print(f"[BATADAL] Date range: {df['DATETIME'].iloc[0]} → {df['DATETIME'].iloc[-1]}")
+    print(f"[BATADAL] Date range: {df['DATETIME'].iloc[0]} to {df['DATETIME'].iloc[-1]}")
 
     return df
 

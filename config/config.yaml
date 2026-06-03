@@ -23,7 +23,7 @@ model:
   seeds: [42, 123, 2026, 7, 999]
   epochs: 50
   batch_size: 32
-  patience: 10
+  patience: 5
   skab_n_splits: 5
   seq_len: 16
   hidden_size: 64
@@ -44,8 +44,6 @@ noise:
   gaussian_std: 0.1
 
 paths:
-  processed:   "data/processed"
   logs:        "experiments/logs"
   figures:     "results/figures"
-  tables:      "results/tables"
   models_dir:  "experiments/models"

@@ -1,0 +1,48 @@
+{
+  "params": {
+    "window_size": {
+      "3": {
+        "f1": 0.1739,
+        "n_states": 27,
+        "n_transitions": 76
+      },
+      "4": {
+        "f1": 0.1699,
+        "n_states": 76,
+        "n_transitions": 178
+      },
+      "5": {
+        "f1": 0.1857,
+        "n_states": 178,
+        "n_transitions": 316
+      },
+      "6": {
+        "f1": 0.1747,
+        "n_states": 316,
+        "n_transitions": 480
+      }
+    },
+    "alphabet_size": {
+      "3": {
+        "f1": 0.1699,
+        "n_states": 76,
+        "n_transitions": 178
+      },
+      "4": {
+        "f1": 0.2275,
+        "n_states": 175,
+        "n_transitions": 353
+      },
+      "5": {
+        "f1": 0.1843,
+        "n_states": 312,
+        "n_transitions": 559
+      },
+      "6": {
+        "f1": 0.0,
+        "n_states": 413,
+        "n_transitions": 702
+      }
+    }
+  }
+}

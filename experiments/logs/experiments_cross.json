@@ -1,0 +1,16 @@
+{
+  "batadal_to_skab": {
+    "f1": null,
+    "note": "feature_dim_mismatch"
+  },
+  "skab_to_batadal": {
+    "f1": null,
+    "note": "feature_dim_mismatch"
+  },
+  "in_domain_batadal": {
+    "f1": 0.1699
+  },
+  "in_domain_skab": {
+    "f1": 0.2967
+  }
+}

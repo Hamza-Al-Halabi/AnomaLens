@@ -102,6 +102,10 @@ def mcnemar_test(y_true, y_pred_a, y_pred_b, name_a="A", name_b="B") -> dict:
 if __name__ == "__main__":
     import sys, os, json
     sys.path.insert(0, os.path.abspath("."))
+    if hasattr(sys.stdout, "reconfigure"):
+        sys.stdout.reconfigure(encoding="utf-8")
+    if hasattr(sys.stderr, "reconfigure"):
+        sys.stderr.reconfigure(encoding="utf-8")
     from src.data.loader import load_config
 
     config = load_config()

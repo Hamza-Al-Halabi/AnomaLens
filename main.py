@@ -13,6 +13,12 @@ import json
 import argparse
 import numpy as np
 
+# Force UTF-8 stdout/stderr so Unicode characters print on Windows
+if hasattr(sys.stdout, "reconfigure"):
+    sys.stdout.reconfigure(encoding="utf-8")
+if hasattr(sys.stderr, "reconfigure"):
+    sys.stderr.reconfigure(encoding="utf-8")
+
 # Make sure src is importable
 sys.path.insert(0, os.path.abspath("."))
 

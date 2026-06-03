@@ -1,0 +1,18 @@
+{
+  "BATADAL": {
+    "vocab_size": 76,
+    "test_patterns": 833,
+    "unseen_count": 5,
+    "unseen_rate": 0.006,
+    "avg_lev_dist": 1.0,
+    "f1": 0.1705
+  },
+  "SKAB": {
+    "vocab_size": 81,
+    "test_patterns": 4505,
+    "unseen_count": 0,
+    "unseen_rate": 0.0,
+    "avg_lev_dist": 0.0,
+    "f1": 0.2967
+  }
+}

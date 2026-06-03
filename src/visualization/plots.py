@@ -15,6 +15,12 @@ import sys
 import json
 import numpy as np
 import matplotlib
+
+if hasattr(sys.stdout, "reconfigure"):
+    sys.stdout.reconfigure(encoding="utf-8")
+if hasattr(sys.stderr, "reconfigure"):
+    sys.stderr.reconfigure(encoding="utf-8")
+
 matplotlib.use("Agg")  # no display needed
 import matplotlib.pyplot as plt
 import seaborn as sns
@@ -92,7 +98,8 @@ def plot_confusion_matrices(config, dataset="BATADAL"):
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     seq_len = config["model"]["seq_len"]
 
-    preds_dict = {}
+    preds_dict  = {}
+    probs_dict  = {}  # raw probabilities for PR curve
 
     # DL models
     for name, Cls in [("LSTM", LSTMModel), ("GRU", GRUModel), ("1D-CNN", CNN1DModel)]:
@@ -108,17 +115,25 @@ def plot_confusion_matrices(config, dataset="BATADAL"):
             for Xb, yb in test_dl:
                 probs.extend(torch.sigmoid(trained(Xb.to(device)).squeeze(-1)).cpu().numpy())
                 labels.extend(yb.numpy())
-        preds_dict[name] = (np.array(labels), (np.array(probs) >= thr).astype(int))
+        probs_arr  = np.array(probs)
+        labels_arr = np.array(labels)
+        preds_dict[name] = (labels_arr, (probs_arr >= thr).astype(int))
+        probs_dict[name] = (labels_arr, probs_arr)
 
-    # Automata
+    # Automata — use path probabilities (negated so higher = more normal)
     automata = ProbabilisticAutomata(config)
     automata.fit(X_tr_pca[:, 0])
     automata.calibrate_threshold(X_va_pca[:, 0], y_val.values)
-    y_pred, _ = automata.predict(X_te_pca[:, 0])
+    y_pred, path_probs = automata.predict(X_te_pca[:, 0])
     ml = min(len(y_test), len(y_pred))
     preds_dict["Automata"] = (y_test.values[:ml], y_pred[:ml])
+    # path_probs length = n - window_size + 1, shorter than y_pred
+    ml_pr = min(len(y_test), len(path_probs))
+    auto_scores = -np.array(path_probs[:ml_pr])
+    auto_scores = (auto_scores - auto_scores.min()) / (auto_scores.max() - auto_scores.min() + 1e-9)
+    probs_dict["Automata"] = (y_test.values[:ml_pr], auto_scores)
 
-    # Plot 2x2 grid
+    # ── Plot 2x2 confusion matrix grid ──────────────────────────
     fig, axes = plt.subplots(2, 2, figsize=(11, 9))
     for ax, (name, (yt, yp)) in zip(axes.flat, preds_dict.items()):
         cm = confusion_matrix(yt, yp)
@@ -131,6 +146,32 @@ def plot_confusion_matrices(config, dataset="BATADAL"):
     plt.savefig(path, dpi=150, bbox_inches="tight")
     plt.close()
     print(f"  Saved → {path}")
+
+    # ── Precision-Recall curves (same models, same data pass) ───
+    from sklearn.metrics import average_precision_score
+    colors = {"LSTM": "#4C72B0", "GRU": "#55A868", "1D-CNN": "#C44E52",
+              "Automata": "#8172B3"}
+    plt.figure(figsize=(8, 6))
+    for name, (yt, sc) in probs_dict.items():
+        if len(np.unique(yt)) < 2:
+            continue
+        prec, rec, _ = precision_recall_curve(yt, sc)
+        ap = average_precision_score(yt, sc)
+        plt.plot(rec, prec, label=f"{name} (AP={ap:.3f})",
+                 color=colors.get(name, None), linewidth=2)
+    baseline = float(np.mean(y_test.values))
+    plt.axhline(baseline, linestyle="--", color="gray", alpha=0.6,
+                label=f"Baseline (random) = {baseline:.3f}")
+    plt.xlabel("Recall")
+    plt.ylabel("Precision")
+    plt.title(f"Precision-Recall Curves — {dataset} (seed={seed})")
+    plt.legend(loc="upper right", fontsize=9)
+    plt.grid(alpha=0.3)
+    plt.tight_layout()
+    pr_path = os.path.join(fig_dir, f"precision_recall_{dataset.lower()}.png")
+    plt.savefig(pr_path, dpi=150, bbox_inches="tight")
+    plt.close()
+    print(f"  Saved → {pr_path}")
 
 
 # ── 3. Automata state diagram ──────────────────────────────────────────────────
@@ -284,6 +325,58 @@ def plot_parameter_sensitivity(config):
     print(f"  Saved → {path}")
 
 
+# ── 6. BATADAL per-seed F1 stability plot ──────────────────────────────────────
+
+def plot_batadal_per_seed_f1(config):
+    fig_dir = ensure_dir(config)
+    bat_path = os.path.join(config["paths"]["logs"], "batadal_results.json")
+    if not os.path.exists(bat_path):
+        print("  [skip] batadal_results.json not found.")
+        return
+
+    with open(bat_path) as f:
+        data = json.load(f)
+
+    models  = ["lstm", "gru", "cnn", "automata"]
+    labels  = ["LSTM", "GRU", "1D-CNN", "Automata"]
+    colors  = ["#4C72B0", "#55A868", "#C44E52", "#8172B3"]
+    seeds   = config["model"]["seeds"]
+    n_seeds = len(seeds)
+    x       = np.arange(n_seeds)
+    width   = 0.18
+
+    fig, ax = plt.subplots(figsize=(11, 5))
+
+    for i, (model, label, color) in enumerate(zip(models, labels, colors)):
+        f1s = data[model]["per_seed_f1"][:n_seeds]
+        offset = (i - 1.5) * width
+        bars = ax.bar(x + offset, f1s, width, label=label,
+                      color=color, alpha=0.85)
+        for bar, val in zip(bars, f1s):
+            if val > 0.01:
+                ax.text(bar.get_x() + bar.get_width() / 2,
+                        bar.get_height() + 0.01,
+                        f"{val:.2f}", ha="center", va="bottom",
+                        fontsize=7, color=color, fontweight="bold")
+
+    ax.set_xticks(x)
+    ax.set_xticklabels([f"Seed\n{s}" for s in seeds])
+    ax.set_ylabel("F1-score")
+    ax.set_ylim(0, 1.05)
+    ax.set_title("BATADAL — F1 per Seed (Stability Analysis)\n"
+                 "Automata: constant 0.171 across all seeds; DL: highly variable")
+    ax.legend(loc="upper left", fontsize=9)
+    ax.axhline(0.171, color="#8172B3", linestyle="--", linewidth=1.2,
+               alpha=0.6, label="Automata baseline")
+    ax.grid(axis="y", alpha=0.3)
+
+    plt.tight_layout()
+    path = os.path.join(fig_dir, "batadal_per_seed_f1.png")
+    plt.savefig(path, dpi=150, bbox_inches="tight")
+    plt.close()
+    print(f"  Saved → {path}")
+
+
 if __name__ == "__main__":
     from src.data.loader import load_config
     config = load_config()
@@ -295,7 +388,7 @@ if __name__ == "__main__":
     print("\n1. F1 comparison bar chart")
     plot_f1_comparison(config)
 
-    print("\n2. Confusion matrices (BATADAL)")
+    print("\n2. Confusion matrices + PR curves (BATADAL)")
     plot_confusion_matrices(config, "BATADAL")
 
     print("\n3. Automata state diagram")
@@ -306,5 +399,8 @@ if __name__ == "__main__":
 
     print("\n5. Parameter sensitivity plots")
     plot_parameter_sensitivity(config)
+
+    print("\n6. BATADAL per-seed F1 stability")
+    plot_batadal_per_seed_f1(config)
 
     print("\n✓ All figures saved to results/figures/")
