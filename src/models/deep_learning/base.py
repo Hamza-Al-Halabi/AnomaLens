@@ -14,22 +14,21 @@ from sklearn.metrics import (f1_score, precision_score,
 class TimeSeriesDataset(Dataset):
     """
     Sliding window dataset for time series classification.
-    Each sample is a window of shape (seq_len, n_features).
     Label = majority vote over the window.
     """
 
     def __init__(self, X: np.ndarray, y: np.ndarray, seq_len: int):
-        self.X       = torch.FloatTensor(X)
-        self.y       = torch.FloatTensor(y)
+        self.X       = torch.FloatTensor(np.array(X).copy())
+        self.y       = torch.FloatTensor(np.array(y).copy())
         self.seq_len = seq_len
 
     def __len__(self):
         return max(0, len(self.X) - self.seq_len + 1)
 
     def __getitem__(self, idx):
-        x_window = self.X[idx: idx + self.seq_len]          # (seq_len, n_features)
+        x_window = self.X[idx: idx + self.seq_len]
         y_window = self.y[idx: idx + self.seq_len]
-        label    = float(y_window.float().mean() >= 0.5)    # majority vote
+        label    = float(y_window.float().mean() >= 0.5)
         return x_window, torch.tensor(label, dtype=torch.float32)
 
 
@@ -43,7 +42,6 @@ class EarlyStopping:
         self.best_state = None
 
     def step(self, val_loss: float, model: nn.Module) -> bool:
-        """Returns True if training should stop."""
         if val_loss < self.best_loss:
             self.best_loss  = val_loss
             self.counter    = 0
@@ -57,7 +55,7 @@ class EarlyStopping:
             model.load_state_dict(self.best_state)
 
 
-# ── Training & Evaluation ─────────────────────────────────────────────────────
+# ── Core functions ────────────────────────────────────────────────────────────
 
 def set_seed(seed: int):
     torch.manual_seed(seed)
@@ -81,10 +79,10 @@ def train_one_epoch(model, loader, optimizer, criterion, device):
     return total_loss / max(len(loader.dataset), 1)
 
 
-def evaluate(model, loader, criterion, device):
+def evaluate(model, loader, criterion, device, threshold: float = 0.5):
     model.eval()
     total_loss = 0.0
-    all_preds, all_labels = [], []
+    all_probs, all_labels = [], []
 
     with torch.no_grad():
         for X_batch, y_batch in loader:
@@ -92,69 +90,73 @@ def evaluate(model, loader, criterion, device):
             logits = model(X_batch).squeeze(-1)
             loss   = criterion(logits, y_batch)
             total_loss += loss.item() * len(y_batch)
-            probs  = torch.sigmoid(logits)
-            preds  = (probs >= 0.5).long().cpu().numpy()
-            all_preds.extend(preds)
-            all_labels.extend(y_batch.cpu().long().numpy())
+            probs  = torch.sigmoid(logits).cpu().numpy()
+            all_probs.extend(probs)
+            all_labels.extend(y_batch.cpu().numpy())
 
     avg_loss = total_loss / max(len(loader.dataset), 1)
-    metrics  = compute_metrics(np.array(all_labels), np.array(all_preds))
+    preds    = (np.array(all_probs) >= threshold).astype(int)
+    metrics  = compute_metrics(np.array(all_labels), preds)
     return avg_loss, metrics
 
 
 def compute_metrics(y_true: np.ndarray, y_pred: np.ndarray) -> dict:
     return {
         "accuracy" : float(accuracy_score(y_true, y_pred)),
-        "precision": float(precision_score(y_true, y_pred,
-                                            zero_division=0)),
-        "recall"   : float(recall_score(y_true, y_pred,
-                                         zero_division=0)),
-        "f1"       : float(f1_score(y_true, y_pred,
-                                     zero_division=0)),
+        "precision": float(precision_score(y_true, y_pred, zero_division=0)),
+        "recall"   : float(recall_score(y_true, y_pred,    zero_division=0)),
+        "f1"       : float(f1_score(y_true, y_pred,        zero_division=0)),
     }
 
+
+# ── Training pipeline ─────────────────────────────────────────────────────────
 
 def train_model(model, config: dict,
                 X_train, y_train,
                 X_val,   y_val,
                 seed: int,
-                model_name: str = "model") -> dict:
+                model_name: str = "model") -> tuple:
     """
     Full training loop with early stopping.
-    Returns metrics dict with train/val results and timing.
+    Uses threshold=0.5 — pos_weight handles class imbalance.
+    Returns (result_dict, trained_model).
     """
     set_seed(seed)
-    device    = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    seq_len   = config["model"]["seq_len"]
-    batch_sz  = config["model"]["batch_size"]
-    epochs    = config["model"]["epochs"]
-    patience  = config["model"]["patience"]
-    lr        = config["model"]["learning_rate"]
+    device   = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    seq_len  = config["model"]["seq_len"]
+    batch_sz = config["model"]["batch_size"]
+    epochs   = config["model"]["epochs"]
+    patience = config["model"]["patience"]
+    lr       = config["model"]["learning_rate"]
 
-    train_ds  = TimeSeriesDataset(X_train, y_train, seq_len)
-    val_ds    = TimeSeriesDataset(X_val,   y_val,   seq_len)
-    train_dl  = DataLoader(train_ds, batch_size=batch_sz, shuffle=True)
-    val_dl    = DataLoader(val_ds,   batch_size=batch_sz, shuffle=False)
+    train_ds = TimeSeriesDataset(X_train, y_train, seq_len)
+    val_ds   = TimeSeriesDataset(X_val,   y_val,   seq_len)
+    train_dl = DataLoader(train_ds, batch_size=batch_sz, shuffle=True)
+    val_dl   = DataLoader(val_ds,   batch_size=batch_sz, shuffle=False)
 
-    model     = model.to(device)
+    model    = model.to(device)
     optimizer = torch.optim.Adam(model.parameters(), lr=lr)
 
-    # Handle class imbalance with pos_weight
-    pos_count  = float(y_train.sum())
+    # pos_weight to handle class imbalance
+    pos_count  = float(np.array(y_train).sum())
     neg_count  = float(len(y_train) - pos_count)
-    pos_weight = torch.tensor([neg_count / max(pos_count, 1)]).to(device)
+    raw_weight = neg_count / max(pos_count, 1)
+    max_w = config["model"].get("max_pos_weight", 10.0)
+    pos_weight = torch.tensor([min(raw_weight, max_w)]).to(device)
+    print(f"  pos_weight={min(raw_weight, max_w):.1f} (raw={raw_weight:.1f})")
     criterion  = nn.BCEWithLogitsLoss(pos_weight=pos_weight)
 
-    stopper   = EarlyStopping(patience=patience)
-    t_start   = time.time()
+    stopper  = EarlyStopping(patience=patience)
+    t_start  = time.time()
+    epoch    = 0
 
     for epoch in range(epochs):
-        train_loss = train_one_epoch(model, train_dl, optimizer, criterion, device)
+        train_loss            = train_one_epoch(model, train_dl, optimizer, criterion, device)
         val_loss, val_metrics = evaluate(model, val_dl, criterion, device)
 
         if stopper.step(val_loss, model):
-            print(f"  [EarlyStopping] epoch {epoch+1}/{epochs} — "
-                  f"val_loss={val_loss:.4f} — stopped")
+            print(f"  [EarlyStopping] epoch {epoch+1}/{epochs} "
+                  f"val_loss={val_loss:.4f} val_f1={val_metrics['f1']:.4f}")
             break
 
         if (epoch + 1) % 10 == 0:
@@ -166,10 +168,8 @@ def train_model(model, config: dict,
     stopper.restore_best(model)
     training_time = time.time() - t_start
 
-    # Final evaluation on val
     _, val_metrics = evaluate(model, val_dl, criterion, device)
 
-    # Inference time on val set
     t_inf = time.time()
     with torch.no_grad():
         for X_batch, _ in val_dl:
@@ -191,16 +191,16 @@ def train_model(model, config: dict,
 def predict_model(model, config: dict,
                   X_test, y_test,
                   model_name: str = "model") -> dict:
-    """Run inference on test set and return metrics."""
+    """Run inference on test set. Returns metrics dict."""
     device  = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     seq_len = config["model"]["seq_len"]
     bs      = config["model"]["batch_size"]
 
-    test_ds = TimeSeriesDataset(X_test, y_test, seq_len)
-    test_dl = DataLoader(test_ds, batch_size=bs, shuffle=False)
+    test_ds   = TimeSeriesDataset(X_test, y_test, seq_len)
+    test_dl   = DataLoader(test_ds, batch_size=bs, shuffle=False)
     criterion = nn.BCEWithLogitsLoss()
 
-    t_inf   = time.time()
+    t_inf = time.time()
     _, test_metrics = evaluate(model, test_dl, criterion, device)
     inference_time  = time.time() - t_inf
 

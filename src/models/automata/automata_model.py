@@ -1,8 +1,12 @@
 import numpy as np
 import json
 from collections import defaultdict
-from sax import series_to_sax_patterns, build_sax_vocabulary
-from levenshtein import resolve_pattern
+try:
+    from .sax import series_to_sax_patterns, build_sax_vocabulary
+    from .levenshtein import resolve_pattern
+except ImportError:
+    from sax import series_to_sax_patterns, build_sax_vocabulary
+    from levenshtein import resolve_pattern
 
 
 class ProbabilisticAutomata:

@@ -1,0 +1,68 @@
+{
+  "lstm": {
+    "dataset": "BATADAL",
+    "f1_mean": 0.0,
+    "f1_std": 0.0,
+    "precision_mean": 0.0,
+    "recall_mean": 0.0,
+    "accuracy_mean": 0.9096224116930571,
+    "train_time_mean": 5.7940000000000005,
+    "inf_time_mean": 0.06083999999999999,
+    "per_seed_f1": [
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0
+    ]
+  },
+  "gru": {
+    "dataset": "BATADAL",
+    "f1_mean": 0.0,
+    "f1_std": 0.0,
+    "precision_mean": 0.0,
+    "recall_mean": 0.0,
+    "accuracy_mean": 0.9088915956151034,
+    "train_time_mean": 11.691999999999998,
+    "inf_time_mean": 0.09469999999999999,
+    "per_seed_f1": [
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0
+    ]
+  },
+  "cnn": {
+    "dataset": "BATADAL",
+    "f1_mean": 0.00963855421686747,
+    "f1_std": 0.01927710843373494,
+    "precision_mean": 0.04444444444444444,
+    "recall_mean": 0.005405405405405406,
+    "accuracy_mean": 0.9006090133982948,
+    "train_time_mean": 8.726,
+    "inf_time_mean": 0.057420000000000006,
+    "per_seed_f1": [
+      0.04819277108433735,
+      0.0,
+      0.0,
+      0.0,
+      0.0
+    ]
+  },
+  "automata": {
+    "dataset": "BATADAL",
+    "f1_mean": 0.21022727272727276,
+    "f1_std": 2.7755575615628914e-17,
+    "precision_mean": 0.13602941176470587,
+    "recall_mean": 0.4625,
+    "accuracy_mean": 0.6674641148325359,
+    "per_seed_f1": [
+      0.21022727272727273,
+      0.21022727272727273,
+      0.21022727272727273,
+      0.21022727272727273,
+      0.21022727272727273
+    ]
+  }
+}

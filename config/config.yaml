@@ -23,13 +23,14 @@ model:
   seeds: [42, 123, 2026, 7, 999]
   epochs: 50
   batch_size: 32
-  patience: 5
+  patience: 10
   skab_n_splits: 5
   seq_len: 16
   hidden_size: 64
   num_layers: 2
   dropout: 0.2
   learning_rate: 0.001
+  max_pos_weight: 10.0
 
 automata:
   window_size: 4
