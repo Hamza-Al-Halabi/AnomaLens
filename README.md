@@ -1,6 +1,8 @@
 # AnomaLens — From Black-Box to Explainability: Probabilistic Automata for Time Series Analysis
 
 **Course:** BSM Yazılım Laboratuvarı II · Spring 2025–2026  
+**Group Number:** 31
+**Contributor:** Hamza AlHalabi 241307128 / Emad AlAbdul Rahman 241307126
 **Deadline:** June 7, 2026
 
 ---
